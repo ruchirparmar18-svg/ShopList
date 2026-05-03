@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Shopping">
+<meta name="theme-color" content="#BF512C">
+<title>Shopping Checklist</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --linen:#FAEEE5;--coconut:#F0EDE5;--mauve:#D6C9C5;
+  --navy:#0C2C47;--yellow:#DA9B2B;--green:#2E5749;
+  --orange:#BF512C;--blue:#94B2C4;--cocoa:#594536;--red:#4E0000;
+  --must-bg:#FDF0E8;--must-border:#E8C4A8;
+  --good-bg:#EFF5F0;--good-border:#BDD4C4;
+  --bought-bg:#EAF2ED;--bought-border:#C5D9CE;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--linen);color:var(--navy)}
+
+/* ── SCROLLABLE ── */
+.scroll-body{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.scroll-body::-webkit-scrollbar{display:none}
+
+/* ── MAIN LAYOUT ── */
+.app{display:flex;flex-direction:column;height:100%}
+
+/* ══════════════════ HEADER ══════════════════ */
+.header{
+  background:var(--orange);
+  padding:52px 20px 18px;
+  flex-shrink:0;
+  position:relative;
+  overflow:hidden;
+}
+.header::after{
+  content:'SHOP';
+  position:absolute;
+  right:-6px;top:18px;
+  font-family:'DM Serif Display',serif;
+  font-size:80px;color:rgba(255,255,255,0.055);
+  letter-spacing:-3px;line-height:1;pointer-events:none;
+}
+.header-eyebrow{font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:rgba(250,238,229,.65);margin-bottom:5px}
+.header-title{font-family:'DM Serif Display',serif;font-size:28px;color:var(--linen);line-height:1.05;margin-bottom:14px}
+.header-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.stat-pill{background:rgba(0,0,0,.12);border-radius:9px;padding:7px 8px;text-align:center}
+.stat-num{font-family:'DM Serif Display',serif;font-size:20px;color:var(--linen);line-height:1}
+.stat-lbl{font-size:8px;color:rgba(250,238,229,.5);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
+.header-bar{height:2px;background:rgba(0,0,0,.15);border-radius:1px;overflow:hidden}
+.header-bar-fill{height:100%;background:rgba(250,238,229,.6);border-radius:1px;transition:width .4s}
+
+/* ══════════════════ FILTERS ══════════════════ */
+.filters{display:flex;background:var(--coconut);border-bottom:1px solid var(--mauve);flex-shrink:0}
+.filter-tab{flex:1;padding:9px 2px;text-align:center;font-size:11px;font-weight:600;color:var(--mauve);letter-spacing:.04em;border-bottom:2px solid transparent;cursor:pointer;background:none;border-top:none;border-left:none;border-right:none;font-family:'DM Sans',sans-serif;transition:color .15s}
+.filter-tab.active{color:var(--navy);border-bottom:2px solid var(--navy)}
+
+/* ══════════════════ LIST BODY ══════════════════ */
+.list-body{padding:0 14px 20px}
+
+.cat-section{margin-top:14px}
+.cat-lbl{
+  font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--cocoa);opacity:.45;margin-bottom:6px;padding-bottom:5px;
+  border-bottom:1px solid var(--mauve);
+  display:flex;justify-content:space-between;
+}
+
+/* ══════════════════ SWIPE ITEM ══════════════════ */
+.swipe-wrap{
+  position:relative;border-radius:10px;overflow:hidden;
+  margin-bottom:4px;border:1px solid var(--mauve);
+}
+.swipe-wrap.must{border-left:3px solid var(--orange)}
+.swipe-wrap.good{border-left:3px solid var(--green)}
+.swipe-wrap.bought{border-color:var(--bought-border);border-left-width:1px}
+
+.swipe-actions{
+  position:absolute;top:0;right:0;bottom:0;display:flex;z-index:1;
+  transform:translateX(100%);
+  transition:transform .26s cubic-bezier(0.25,0.46,0.45,0.94);
+}
+.sw-edit{
+  width:60px;background:var(--navy);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  font-size:9px;font-weight:700;color:rgba(250,238,229,.9);letter-spacing:.04em;cursor:pointer;
+}
+.sw-del{
+  width:60px;background:var(--red);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  font-size:9px;font-weight:700;color:rgba(255,255,255,.9);letter-spacing:.04em;cursor:pointer;
+}
+.swipe-row{
+  display:flex;align-items:center;gap:10px;padding:12px 13px;
+  background:var(--coconut);position:relative;z-index:2;
+  transition:transform .26s cubic-bezier(0.25,0.46,0.45,0.94);
+  cursor:pointer;min-height:48px;
+}
+.swipe-wrap.must .swipe-row{background:var(--must-bg)}
+.swipe-wrap.good .swipe-row{background:var(--good-bg)}
+.swipe-wrap.bought .swipe-row{background:var(--bought-bg)}
+.swipe-wrap.open .swipe-row{transform:translateX(-120px)}
+.swipe-wrap.open .swipe-actions{transform:translateX(0)}
+
+/* circle check */
+.item-check{
+  width:22px;height:22px;border-radius:50%;
+  border:1.5px solid var(--mauve);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;background:transparent;transition:all .15s;
+}
+.item-check.done{background:var(--green);border-color:var(--green)}
+
+.item-text{flex:1;min-width:0}
+.item-name{font-size:14px;color:var(--navy);line-height:1.3}
+.swipe-wrap.bought .item-name{color:var(--mauve);text-decoration:line-through;text-decoration-color:var(--mauve)}
+.item-tag{
+  display:inline-block;font-size:10px;font-weight:600;
+  padding:2px 8px;border-radius:10px;margin-top:4px;letter-spacing:.02em;
+}
+.tag-must{background:var(--must-bg);color:var(--orange);border:1px solid var(--must-border)}
+.tag-good{background:var(--good-bg);color:var(--green);border:1px solid var(--good-border)}
+
+/* add button */
+.add-btn{
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  border:1.5px dashed var(--mauve);border-radius:10px;padding:12px;
+  margin:10px 0 0;font-size:12px;font-weight:600;color:var(--cocoa);opacity:.5;
+  cursor:pointer;background:transparent;width:100%;
+}
+.add-btn:active{opacity:.8}
+
+.empty-state{text-align:center;padding:48px 20px;color:var(--mauve);font-size:13px}
+
+/* ══════════════════ SHEETS ══════════════════ */
+.sheet-overlay{
+  position:fixed;inset:0;background:rgba(12,44,71,.42);z-index:200;
+  opacity:0;pointer-events:none;transition:opacity .22s;
+}
+.sheet-overlay.show{opacity:1;pointer-events:all}
+.sheet{
+  position:absolute;bottom:0;left:0;right:0;
+  background:var(--coconut);border-radius:20px 20px 0 0;
+  padding:0 0 36px;
+  transform:translateY(100%);
+  transition:transform .28s cubic-bezier(0.25,0.46,0.45,0.94);
+}
+.sheet-overlay.show .sheet{transform:translateY(0)}
+.sheet-handle{width:36px;height:4px;background:var(--mauve);border-radius:2px;margin:10px auto 16px}
+.sheet-title{font-family:'DM Serif Display',serif;font-size:21px;color:var(--navy);padding:0 20px 4px}
+.sheet-sub{font-size:12px;color:var(--cocoa);opacity:.5;padding:0 20px 18px;line-height:1.4}
+.sheet-field{padding:0 20px;margin-bottom:14px}
+.sheet-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--cocoa);opacity:.5;margin-bottom:6px}
+.sheet-input{
+  width:100%;padding:12px 13px;
+  border:1.5px solid var(--mauve);border-radius:10px;
+  background:var(--linen);font-size:14px;
+  font-family:'DM Sans',sans-serif;color:var(--navy);outline:none;
+}
+.sheet-input:focus{border-color:var(--navy)}
+.sheet-select{
+  width:100%;padding:12px 13px;
+  border:1.5px solid var(--mauve);border-radius:10px;
+  background:var(--linen);font-size:14px;
+  font-family:'DM Sans',sans-serif;color:var(--navy);outline:none;
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 7L11 1' stroke='%23594536' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 13px center;
+}
+.sheet-select:focus{border-color:var(--navy)}
+.sheet-btns{display:flex;gap:10px;padding:4px 20px 0}
+.sheet-cancel{flex:1;padding:13px;border:1.5px solid var(--mauve);border-radius:10px;background:transparent;font-size:14px;font-weight:600;color:var(--navy);font-family:'DM Sans',sans-serif;cursor:pointer}
+.sheet-confirm{flex:1;padding:13px;border:none;border-radius:10px;font-size:14px;font-weight:700;color:var(--linen);font-family:'DM Sans',sans-serif;cursor:pointer}
+.confirm-add{background:var(--orange)}
+.confirm-edit{background:var(--navy)}
+.confirm-del{background:var(--red)}
+
+/* delete sheet */
+.del-icon-wrap{display:flex;justify-content:center;padding:16px 20px 10px}
+.del-item-name{font-size:15px;font-weight:600;color:var(--navy);padding:0 20px 4px;text-align:center}
+.del-item-sub{font-size:12px;color:var(--cocoa);opacity:.5;padding:0 20px 20px;text-align:center;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-eyebrow">Canada move · 2025</div>
+    <div class="header-title">Shopping<br>checklist</div>
+    <div class="header-stats">
+      <div class="stat-pill"><div class="stat-num" id="stat-bought">0</div><div class="stat-lbl">Bought</div></div>
+      <div class="stat-pill"><div class="stat-num" id="stat-total">0</div><div class="stat-lbl">Total</div></div>
+      <div class="stat-pill"><div class="stat-num" id="stat-pct">0%</div><div class="stat-lbl">Done</div></div>
+    </div>
+    <div class="header-bar"><div class="header-bar-fill" id="header-bar" style="width:0%"></div></div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <button class="filter-tab active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-tab" onclick="setFilter('must',this)">Must have</button>
+    <button class="filter-tab" onclick="setFilter('remaining',this)">To buy</button>
+    <button class="filter-tab" onclick="setFilter('bought',this)">Bought</button>
+  </div>
+
+  <!-- LIST -->
+  <div class="scroll-body">
+    <div class="list-body" id="list-body"></div>
+  </div>
+</div>
+
+<!-- ADD SHEET -->
+<div class="sheet-overlay" id="add-overlay" onclick="closeSheet('add-overlay')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Add item</div>
+    <div class="sheet-sub">This will appear in your shopping list</div>
+    <div class="sheet-field">
+      <div class="sheet-label">Item name</div>
+      <input class="sheet-input" id="add-name" type="text" placeholder="e.g. Extra hand cream" autocomplete="off">
+    </div>
+    <div class="sheet-field">
+      <div class="sheet-label">Urgency</div>
+      <select class="sheet-select" id="add-tag">
+        <option value="must">Must have before flying</option>
+        <option value="good">Good to have</option>
+      </select>
+    </div>
+    <div class="sheet-btns">
+      <button class="sheet-cancel" onclick="closeSheet('add-overlay')">Cancel</button>
+      <button class="sheet-confirm confirm-add" onclick="confirmAdd()">Add item</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT SHEET -->
+<div class="sheet-overlay" id="edit-overlay" onclick="closeSheet('edit-overlay')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Edit item</div>
+    <div class="sheet-sub">Update the name or urgency</div>
+    <div class="sheet-field">
+      <div class="sheet-label">Item name</div>
+      <input class="sheet-input" id="edit-name" type="text" autocomplete="off">
+    </div>
+    <div class="sheet-field">
+      <div class="sheet-label">Urgency</div>
+      <select class="sheet-select" id="edit-tag">
+        <option value="must">Must have before flying</option>
+        <option value="good">Good to have</option>
+      </select>
+    </div>
+    <div class="sheet-btns">
+      <button class="sheet-cancel" onclick="closeSheet('edit-overlay')">Cancel</button>
+      <button class="sheet-confirm confirm-edit" onclick="confirmEdit()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE SHEET -->
+<div class="sheet-overlay" id="del-overlay" onclick="closeSheet('del-overlay')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="del-icon-wrap">
+      <svg width="44" height="44" viewBox="0 0 28 28" fill="none">
+        <path d="M5 9H23" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M11 9V7C11 6.4 11.4 6 12 6H16C16.6 6 17 6.4 17 7V9" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round"/>
+        <rect x="7.5" y="9" width="13" height="14" rx="2" stroke="var(--red)" stroke-width="1.5"/>
+        <path d="M12 12.5V19.5" stroke="var(--red)" stroke-width="1.4" stroke-linecap="round" opacity=".6"/>
+        <path d="M16 12.5V19.5" stroke="var(--red)" stroke-width="1.4" stroke-linecap="round" opacity=".6"/>
+      </svg>
+    </div>
+    <div class="del-item-name" id="del-item-name"></div>
+    <div class="del-item-sub">This item will be permanently removed.<br>This cannot be undone.</div>
+    <div class="sheet-btns">
+      <button class="sheet-cancel" onclick="closeSheet('del-overlay')">Keep it</button>
+      <button class="sheet-confirm confirm-del" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// DEFAULT DATA
+// ══════════════════════════════════════════
+const MUST = 'must', GOOD = 'good';
+const DEFAULT_SECTIONS = [
+  {cat:'Electronics', items:[
+    {id:'s1', name:'20,000 mAh power bank',           tag:MUST},
+    {id:'s2', name:'Type-C to Lightning cable × 2',   tag:MUST},
+    {id:'s3', name:'Universal travel adapter',         tag:MUST},
+  ]},
+  {cat:'Eyewear & accessories', items:[
+    {id:'s4', name:'Sunglasses — metal frame + cover', tag:GOOD},
+    {id:'s5', name:'Running sunglasses',               tag:GOOD},
+    {id:'s6', name:'Casio watch',                      tag:GOOD},
+    {id:'s7', name:'Fossil watch',                     tag:GOOD},
+    {id:'s8', name:'Anti-fog spray for eyeglasses',    tag:GOOD},
+    {id:'s9', name:'Luggage scale',                    tag:MUST},
+    {id:'s10',name:'Document pouch',                   tag:MUST},
+    {id:'s11',name:'Wallet',                           tag:MUST},
+  ]},
+  {cat:'Documents to gather', items:[
+    {id:'s12',name:'Documents file folder (A4)',        tag:MUST},
+    {id:'s13',name:'10th marksheet',                   tag:MUST},
+    {id:'s14',name:'12th marksheet',                   tag:MUST},
+    {id:'s15',name:'B.Arch degree',                    tag:MUST},
+    {id:'s16',name:'Transcript',                       tag:MUST},
+    {id:'s17',name:'Baptism certificate',              tag:MUST},
+    {id:'s18',name:'First Communion certificate',      tag:MUST},
+    {id:'s19',name:'Confirmation certificate',         tag:MUST},
+    {id:'s20',name:'Birth certificate',                tag:MUST},
+    {id:'s21',name:'Active passport',                  tag:MUST},
+    {id:'s22',name:'Passport photographs × 30',        tag:MUST},
+    {id:'s23',name:'Old passports',                    tag:MUST},
+    {id:'s24',name:"International driver's licence",   tag:MUST},
+    {id:'s25',name:'Port of Entry Letter',             tag:MUST},
+    {id:'s26',name:'PAL',                              tag:MUST},
+    {id:'s27',name:'Letter of Acceptance',             tag:MUST},
+    {id:'s28',name:'Tuition fees receipt',             tag:MUST},
+    {id:'s29',name:'GIC Certificate',                  tag:MUST},
+    {id:'s30',name:'Biometrics invoice',               tag:MUST},
+    {id:'s31',name:'Medical exam invoice',             tag:MUST},
+    {id:'s32',name:'Proof of funds docket',            tag:MUST},
+    {id:'s33',name:'Travel insurance',                 tag:MUST},
+    {id:'s34',name:'Flight tickets',                   tag:MUST},
+    {id:'s35',name:'Steinbach accommodation proof',    tag:MUST},
+  ]},
+  {cat:'Medical documents', items:[
+    {id:'s36',name:'Regular meds prescription (TC approved)', tag:MUST},
+    {id:'s37',name:'Hair treatment prescription',      tag:GOOD},
+    {id:'s38',name:'Eye prescription',                 tag:MUST},
+  ]},
+  {cat:'Stationery', items:[
+    {id:'s39',name:'Mechanical pencil',                tag:GOOD},
+    {id:'s40',name:'Mechanical pencil lead',           tag:GOOD},
+    {id:'s41',name:'Small pen',                        tag:GOOD},
+    {id:'s42',name:'Normal pen',                       tag:GOOD},
+    {id:'s43',name:'Clear folders',                    tag:GOOD},
+  ]},
+  {cat:'Grooming & toiletries', items:[
+    {id:'s44',name:'Toothbrush',                       tag:MUST},
+    {id:'s45',name:'Toothpaste',                       tag:MUST},
+    {id:'s46',name:'Tongue cleaner',                   tag:MUST},
+    {id:'s47',name:'Shampoo + conditioner',            tag:MUST},
+    {id:'s48',name:'Body wash',                        tag:MUST},
+    {id:'s49',name:'Body oil',                         tag:GOOD},
+    {id:'s50',name:'Face wash',                        tag:MUST},
+    {id:'s51',name:'Face cream',                       tag:MUST},
+    {id:'s52',name:'Hair serum',                       tag:GOOD},
+    {id:'s53',name:'Sunscreen',                        tag:MUST},
+    {id:'s54',name:'Nail clipper',                     tag:MUST},
+    {id:'s55',name:'Nail filer',                       tag:GOOD},
+    {id:'s56',name:'Portable jet spray',               tag:MUST},
+    {id:'s57',name:'Towel',                            tag:MUST},
+    {id:'s58',name:'Razor',                            tag:MUST},
+    {id:'s59',name:'Razor foam',                       tag:MUST},
+    {id:'s60',name:'Petroleum jelly',                  tag:GOOD},
+    {id:'s61',name:'Lip balm',                         tag:GOOD},
+    {id:'s62',name:'Ear buds',                         tag:GOOD},
+    {id:'s63',name:'Hand sanitiser',                   tag:MUST},
+  ]},
+  {cat:'Medicines & vitamins', items:[
+    {id:'s64',name:'Antacid',                          tag:MUST},
+    {id:'s65',name:'Pain killers',                     tag:MUST},
+    {id:'s66',name:'Band-aid',                         tag:MUST},
+    {id:'s67',name:'Cold & flu meds',                  tag:MUST},
+    {id:'s68',name:'Nasal spray',                      tag:MUST},
+    {id:'s69',name:'Multi vitamins',                   tag:MUST},
+    {id:'s70',name:'Vitamin D3',                       tag:MUST},
+    {id:'s71',name:'Vitamin B12',                      tag:MUST},
+    {id:'s72',name:'Cetirizine',                       tag:MUST},
+  ]},
+  {cat:'Clothes — thermals & basics', items:[
+    {id:'s73',name:'Thermal set × 2',                  tag:MUST},
+    {id:'s74',name:'Thick socks × 6 pairs',            tag:MUST},
+    {id:'s75',name:'Dark gray plain t-shirt',          tag:GOOD},
+    {id:'s76',name:'Rust plain t-shirt',               tag:GOOD},
+    {id:'s77',name:'Maroon plain t-shirt',             tag:GOOD},
+    {id:'s78',name:'Black plain t-shirt',              tag:GOOD},
+    {id:'s79',name:'Brown plain t-shirt',              tag:GOOD},
+    {id:'s80',name:'White plain t-shirt',              tag:GOOD},
+    {id:'s81',name:'Dark green plain t-shirt',         tag:GOOD},
+    {id:'s82',name:'Navy blue collar t-shirt',         tag:GOOD},
+    {id:'s83',name:'Light gray collar t-shirt',        tag:GOOD},
+    {id:'s84',name:'Navy blue shirt',                  tag:GOOD},
+    {id:'s85',name:'White shirt',                      tag:GOOD},
+    {id:'s86',name:'Black shirt',                      tag:GOOD},
+    {id:'s87',name:'Gray zipper sweatshirt',           tag:MUST},
+    {id:'s88',name:'Brown jacket',                     tag:MUST},
+    {id:'s89',name:'Blue jeans',                       tag:MUST},
+    {id:'s90',name:'Dark gray chino',                  tag:GOOD},
+    {id:'s91',name:'Black jeans',                      tag:MUST},
+  ]},
+  {cat:'Kitchen & cookware', items:[
+    {id:'s92', name:'Cooker + spare whistle & gasket', tag:MUST},
+    {id:'s93', name:'Non-stick pan (medium)',           tag:MUST},
+    {id:'s94', name:'Non-stick pan (small)',            tag:GOOD},
+    {id:'s95', name:'Tea / milk pan',                  tag:MUST},
+    {id:'s96', name:'Frother machine + attachments',   tag:GOOD},
+    {id:'s97', name:'Tea filter / garni',              tag:MUST},
+    {id:'s98', name:'Plastic chamcha + ladle',         tag:MUST},
+    {id:'s99', name:'Tongs / sansi',                   tag:GOOD},
+    {id:'s100',name:'Masala organiser',                tag:GOOD},
+  ]},
+  {cat:'Masalas & food', items:[
+    {id:'s101',name:'Chai masala & chai patti',        tag:MUST},
+    {id:'s102',name:'Oregano & chilli flakes',         tag:GOOD},
+    {id:'s103',name:'Hing, ajwain, kalonji',           tag:MUST},
+    {id:'s104',name:'Kashmiri red chilli powder',      tag:MUST},
+    {id:'s105',name:'Ready-to-eat meals + noodles',    tag:MUST},
+    {id:'s106',name:'Instant khichdi mix',             tag:MUST},
+  ]},
+  {cat:'Watches to buy', items:[
+    {id:'s107',name:'Casio watch',                     tag:GOOD},
+    {id:'s108',name:'Fossil watch',                    tag:GOOD},
+  ]},
+];
+
+// ══════════════════════════════════════════
+// STATE — all in localStorage, sync saves
+// ══════════════════════════════════════════
+let sections = [];
+let bought   = {};
+let currentFilter = 'all';
+let activeSwipe   = null;
+let pendingEdit   = null;
+let pendingDel    = null;
+let nextCustomId  = 2000;
+
+function save() {
+  localStorage.setItem('shop_sections', JSON.stringify(sections));
+  localStorage.setItem('shop_bought',   JSON.stringify(bought));
+  localStorage.setItem('shop_cid',      String(nextCustomId));
+}
+
+function load() {
+  try {
+    const s = localStorage.getItem('shop_sections');
+    const b = localStorage.getItem('shop_bought');
+    const c = localStorage.getItem('shop_cid');
+    sections     = s ? JSON.parse(s) : JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
+    bought       = b ? JSON.parse(b) : {};
+    nextCustomId = c ? parseInt(c) : 2000;
+  } catch(e) {
+    sections     = JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
+    bought       = {};
+    nextCustomId = 2000;
+  }
+}
+
+// ══════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════
+function allItems() { return sections.flatMap(s => s.items); }
+function boughtCount() { return allItems().filter(i => bought[i.id]).length; }
+
+function updateHeader() {
+  const total  = allItems().length;
+  const done   = boughtCount();
+  const pct    = total ? Math.round(done/total*100) : 0;
+  document.getElementById('stat-bought').textContent = done;
+  document.getElementById('stat-total').textContent  = total;
+  document.getElementById('stat-pct').textContent    = pct+'%';
+  document.getElementById('header-bar').style.width  = pct+'%';
+}
+
+function findItem(id) {
+  for (const sec of sections) {
+    const item = sec.items.find(i => i.id === id);
+    if (item) return {sec, item};
+  }
+  return null;
+}
+
+// ══════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════
+function render() {
+  updateHeader();
+  const body = document.getElementById('list-body');
+  body.innerHTML = '';
+  let anyVisible = false;
+
+  sections.forEach(sec => {
+    const filtered = sec.items.filter(item => {
+      if (currentFilter === 'must')      return item.tag === MUST && !bought[item.id];
+      if (currentFilter === 'remaining') return !bought[item.id];
+      if (currentFilter === 'bought')    return !!bought[item.id];
+      return true;
+    });
+    if (!filtered.length) return;
+    anyVisible = true;
+
+    const boughtInCat = sec.items.filter(i => bought[i.id]).length;
+    const secEl = document.createElement('div');
+    secEl.className = 'cat-section';
+    secEl.innerHTML = `<div class="cat-lbl"><span>${sec.cat}</span><span>${boughtInCat}/${sec.items.length}</span></div>`;
+    body.appendChild(secEl);
+
+    filtered.forEach(item => {
+      const isBought = !!bought[item.id];
+      const wrap = document.createElement('div');
+      wrap.className = 'swipe-wrap '+(isBought ? 'bought' : item.tag);
+      wrap.dataset.id = item.id;
+
+      const tagLabel = item.tag === MUST ? 'Must have before flying' : 'Good to have';
+      const tagClass = item.tag === MUST ? 'tag-must' : 'tag-good';
+
+      wrap.innerHTML = `
+        <div class="swipe-actions">
+          <div class="sw-edit" data-id="${item.id}">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9.5 2.5L11.5 4.5L5 11L2.5 11.5L3 9Z" stroke="rgba(250,238,229,0.9)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 3.5L10.5 5.5" stroke="rgba(250,238,229,0.9)" stroke-width="1.3" stroke-linecap="round"/></svg>
+            Edit
+          </div>
+          <div class="sw-del" data-id="${item.id}">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 4.5H11.5" stroke="rgba(255,255,255,0.9)" stroke-width="1.3" stroke-linecap="round"/><path d="M5 4.5V3C5 2.4 5.4 2 6 2H8C8.6 2 9 2.4 9 3V4.5" stroke="rgba(255,255,255,0.9)" stroke-width="1.3" stroke-linecap="round"/><rect x="4" y="4.5" width="6" height="7.5" rx="1.2" stroke="rgba(255,255,255,0.9)" stroke-width="1.3"/><path d="M6 6.5V10" stroke="rgba(255,255,255,0.65)" stroke-width="1.2" stroke-linecap="round"/><path d="M8 6.5V10" stroke="rgba(255,255,255,0.65)" stroke-width="1.2" stroke-linecap="round"/></svg>
+            Delete
+          </div>
+        </div>
+        <div class="swipe-row ${isBought?'bought':''}" data-id="${item.id}">
+          <div class="item-check ${isBought?'done':''}">
+            ${isBought?`<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`:''}
+          </div>
+          <div class="item-text">
+            <div class="item-name">${item.name}</div>
+            ${!isBought ? `<span class="item-tag ${tagClass}">${tagLabel}</span>` : ''}
+          </div>
+        </div>`;
+
+      // tap = toggle bought
+      wrap.querySelector('.swipe-row').addEventListener('click', () => {
+        if (wrap.classList.contains('open')) { closeActiveSwipe(); return; }
+        toggleBought(item.id);
+      });
+      wrap.querySelector('.sw-edit').addEventListener('click', e => { e.stopPropagation(); openEdit(item.id); });
+      wrap.querySelector('.sw-del').addEventListener('click',  e => { e.stopPropagation(); openDelete(item.id, item.name); });
+
+      initSwipe(wrap);
+      secEl.appendChild(wrap);
+    });
+  });
+
+  if (!anyVisible) {
+    body.innerHTML = '<div class="empty-state">Nothing here</div>';
+  }
+
+  // add button
+  const addBtn = document.createElement('button');
+  addBtn.className = 'add-btn';
+  addBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2V12" stroke="var(--cocoa)" stroke-width="1.6" stroke-linecap="round" opacity=".5"/><path d="M2 7H12" stroke="var(--cocoa)" stroke-width="1.6" stroke-linecap="round" opacity=".5"/></svg> Add item`;
+  addBtn.addEventListener('click', openAdd);
+  body.appendChild(addBtn);
+}
+
+// ══════════════════════════════════════════
+// TOGGLE BOUGHT — instant, no lag
+// ══════════════════════════════════════════
+function toggleBought(id) {
+  bought[id] = !bought[id];
+  save(); // synchronous localStorage — zero lag
+
+  const wrap = document.querySelector(`.swipe-wrap[data-id="${id}"]`);
+  if (!wrap) return;
+
+  const isBought = !!bought[id];
+  const found = findItem(id);
+  if (!found) return;
+
+  // update wrap class
+  wrap.className = 'swipe-wrap ' + (isBought ? 'bought' : found.item.tag);
+
+  // update row
+  const row   = wrap.querySelector('.swipe-row');
+  const check = wrap.querySelector('.item-check');
+  const name  = wrap.querySelector('.item-name');
+  const tag   = wrap.querySelector('.item-tag');
+
+  row.classList.toggle('bought', isBought);
+  check.classList.toggle('done', isBought);
+  check.innerHTML = isBought
+    ? `<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+    : '';
+  name.style.color          = isBought ? 'var(--mauve)' : 'var(--navy)';
+  name.style.textDecoration = isBought ? 'line-through' : 'none';
+  if (tag) tag.style.display = isBought ? 'none' : '';
+
+  updateHeader();
+}
+
+// ══════════════════════════════════════════
+// FILTER
+// ══════════════════════════════════════════
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  closeActiveSwipe();
+  render();
+}
+
+// ══════════════════════════════════════════
+// SWIPE GESTURE
+// ══════════════════════════════════════════
+const ACTION_W = 120;
+
+function closeActiveSwipe() {
+  if (activeSwipe) { activeSwipe.classList.remove('open'); activeSwipe = null; }
+}
+
+function initSwipe(wrap) {
+  const row = wrap.querySelector('.swipe-row');
+  let startX=0,startY=0,curX=0,dragging=false,moved=false;
+
+  function onStart(e) {
+    if (wrap.classList.contains('open')) return;
+    const pt = e.touches ? e.touches[0] : e;
+    startX=pt.clientX; startY=pt.clientY;
+    dragging=true; moved=false; curX=0;
+    row.style.transition='none';
+    wrap.querySelector('.swipe-actions').style.transition='none';
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    const pt = e.touches ? e.touches[0] : e;
+    const dx = pt.clientX - startX;
+    const dy = pt.clientY - startY;
+    if (!moved && Math.abs(dy) > Math.abs(dx)) { dragging=false; return; }
+    if (dx > 2) { dragging=false; return; }
+    if (dx < 0) { moved=true; e.preventDefault(); }
+    curX = Math.max(-ACTION_W, dx);
+    row.style.transform = `translateX(${curX}px)`;
+    const pct = Math.max(0, 100 + (curX/ACTION_W)*100);
+    wrap.querySelector('.swipe-actions').style.transform = `translateX(${pct}%)`;
+  }
+  function onEnd() {
+    if (!dragging) return;
+    dragging=false;
+    row.style.transition='';
+    wrap.querySelector('.swipe-actions').style.transition='';
+    if (curX < -ACTION_W*0.38) {
+      if (activeSwipe && activeSwipe !== wrap) closeActiveSwipe();
+      wrap.classList.add('open');
+      activeSwipe = wrap;
+    } else {
+      row.style.transform='';
+      wrap.querySelector('.swipe-actions').style.transform='';
+    }
+    curX=0;
+  }
+  row.addEventListener('touchstart', onStart, {passive:true});
+  row.addEventListener('touchmove',  onMove,  {passive:false});
+  row.addEventListener('touchend',   onEnd);
+  row.addEventListener('mousedown',  onStart);
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup',   onEnd);
+}
+
+document.addEventListener('touchstart', e => {
+  if (activeSwipe && !activeSwipe.contains(e.target)) closeActiveSwipe();
+}, {passive:true});
+
+// ══════════════════════════════════════════
+// ADD
+// ══════════════════════════════════════════
+function openAdd() {
+  document.getElementById('add-name').value = '';
+  document.getElementById('add-tag').value  = 'must';
+  document.getElementById('add-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('add-name').focus(), 300);
+}
+function confirmAdd() {
+  const name = document.getElementById('add-name').value.trim();
+  const tag  = document.getElementById('add-tag').value;
+  if (!name) { document.getElementById('add-name').focus(); return; }
+
+  const id   = 'custom_'+(nextCustomId++);
+  const item = {id, name, tag};
+
+  let customSec = sections.find(s => s.cat === 'Custom items');
+  if (!customSec) { customSec = {cat:'Custom items', items:[]}; sections.push(customSec); }
+  customSec.items.push(item);
+
+  save();
+  closeSheet('add-overlay');
+  render();
+}
+
+// ══════════════════════════════════════════
+// EDIT
+// ══════════════════════════════════════════
+function openEdit(id) {
+  closeActiveSwipe();
+  const found = findItem(id);
+  if (!found) return;
+  pendingEdit = id;
+  document.getElementById('edit-name').value = found.item.name;
+  document.getElementById('edit-tag').value  = found.item.tag || 'must';
+  document.getElementById('edit-overlay').classList.add('show');
+}
+function confirmEdit() {
+  if (!pendingEdit) return;
+  const name = document.getElementById('edit-name').value.trim();
+  const tag  = document.getElementById('edit-tag').value;
+  if (!name) { document.getElementById('edit-name').focus(); return; }
+
+  const found = findItem(pendingEdit);
+  if (found) { found.item.name = name; found.item.tag = tag; }
+  save();
+  closeSheet('edit-overlay');
+  pendingEdit = null;
+  render();
+}
+
+// ══════════════════════════════════════════
+// DELETE
+// ══════════════════════════════════════════
+function openDelete(id, name) {
+  closeActiveSwipe();
+  pendingDel = id;
+  document.getElementById('del-item-name').textContent = '"'+name+'"';
+  document.getElementById('del-overlay').classList.add('show');
+}
+function confirmDelete() {
+  if (!pendingDel) return;
+  const found = findItem(pendingDel);
+  if (found) {
+    found.sec.items = found.sec.items.filter(i => i.id !== pendingDel);
+    delete bought[pendingDel];
+  }
+  save();
+  closeSheet('del-overlay');
+  pendingDel = null;
+  render();
+}
+
+// ══════════════════════════════════════════
+// SHEET UTILS
+// ══════════════════════════════════════════
+function closeSheet(id) { document.getElementById(id).classList.remove('show'); }
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+load();
+render();
+</script>
+</body>
+</html>
